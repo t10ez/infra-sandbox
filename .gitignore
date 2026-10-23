@@ -1,0 +1,27 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+tfplan
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform vars with secrets (keep .example, ignore actual values if needed)
+# terraform.tfvars  <- kept intentionally (no secrets in this repo)
+
+# Lambda build artifacts
+*.zip
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
