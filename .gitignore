@@ -29,3 +29,4 @@ terraform.rc
 # kms-vault Lambda bundle
 poc-kms-vault/build/
 __pycache__/
+.venv/

@@ -1,0 +1,128 @@
+<title>Pipeline Stage Timings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: one reading column. Stacked bar per file first, then per-stage numbers, table, findings. */
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --fg: #1b2230; --muted: #5d6778; --line: #dde1e8;
+    --srr: #4a6a96; --scan: #c2410c; --evt: #2b8a7b; --warn: #9a6700;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa4b5; --line: #2b3340;
+      --srr: #7f9ec9; --scan: #f08a4b; --evt: #4fc0ae; --warn: #e3b341; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa4b5; --line: #2b3340;
+    --srr: #7f9ec9; --scan: #f08a4b; --evt: #4fc0ae; --warn: #e3b341; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+    padding-block: 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+  h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  p { margin: 0; max-width: 65ch; }
+  .sub, .note { color: var(--muted); }
+  .note { font-size: 13px; }
+  .path { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-x: auto; white-space: nowrap; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+  .chart { overflow-x: auto; }
+  svg { display: block; min-width: 560px; width: 100%; height: auto; }
+  svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+  svg .lbl { fill: var(--fg); font-size: 12px; }
+  svg .tot { fill: var(--fg); font-weight: 500; }
+  svg .grid { stroke: var(--line); stroke-width: 1; }
+  .b-srr { fill: var(--srr); } .b-scan { fill: var(--scan); } .b-evt { fill: var(--evt); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; }
+  .stages { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .stage .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; }
+  .stage .k i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; }
+  .stage .v { font-family: var(--font-mono); font-size: 26px; font-weight: 500; margin-top: 4px; }
+  .stage .d { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
+  td.num { font-family: var(--font-mono); }
+  td.hot { color: var(--warn); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .finds { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .finds h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+  .finds p { font-size: 14px; color: var(--muted); }
+  .fix { border-color: var(--warn); }
+</style>
+
+<main>
+  <header>
+    <h1>Replication takes longer than the scan</h1>
+    <p class="sub">Time spent in each step for one file of each size, from the file landing in S3(src) until it appears in S3(approved). One run, ap-southeast-7, 2026-10-24.</p>
+  </header>
+
+  <div class="path">S3(src) → SRR → S3(scan) → GuardDuty scan → EventBridge + Lambda move → S3(approved)</div>
+
+  <section>
+    <h2>Seconds per step, by file</h2>
+    <div class="card">
+      <div class="chart">
+        <svg viewBox="0 0 700 320" role="img" aria-label="Stacked bars of seconds in replication, GuardDuty scan, and Lambda move for each file size">
+          @@GRID@@
+          @@BARS@@
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--srr)"></i>Replication src → scan</span>
+        <span><i style="background:var(--scan)"></i>GuardDuty scan until tagged</span>
+        <span><i style="background:var(--evt)"></i>EventBridge + Lambda move</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Typical time and growth per step</h2>
+    <div class="stages">
+      <div class="card stage"><div class="k"><i style="background:var(--srr)"></i>Replication</div><div class="v">@@REPMED@@ s</div><div class="d">median, +@@REPB@@ s per MB (R² @@REPR@@)</div></div>
+      <div class="card stage"><div class="k"><i style="background:var(--scan)"></i>GuardDuty scan</div><div class="v">@@SCMED@@ s</div><div class="d">median, +@@SCB@@ s per MB without the 100 MB outlier (R² @@SCR@@)</div></div>
+      <div class="card stage"><div class="k"><i style="background:var(--evt)"></i>Lambda move</div><div class="v">@@MVMED@@ s</div><div class="d">median, +@@MVB@@ s per MB (R² @@MVR@@)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Per-file results</h2>
+    <div class="card tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Replication</th><th>GuardDuty scan</th><th>Lambda move</th><th>Total</th><th>Replication share</th></tr></thead>
+        <tbody>@@ROWS@@</tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What this means</h2>
+    <div class="finds">
+      <div class="card">
+        <h3>Replication is the largest step</h3>
+        <p>It takes about 22 s even for a 10 MB file and 36 to 43 s for 150, 200 and 500 MB. It is two thirds or more of the total for every file except the 100 MB one.</p>
+      </div>
+      <div class="card">
+        <h3>The scan itself is short</h3>
+        <p>Between 2 s and 13 s for most files, growing slowly with size. One 100 MB file took 43 s and the cause is unknown.</p>
+      </div>
+      <div class="card">
+        <h3>Moving big files takes longer</h3>
+        <p>The Lambda step grows from 1 s at 10 MB to 9 s at 500 MB, so copying to approved is not instant for large files.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card fix">
+    <h2>Corrects the earlier pages</h2>
+    <p>The first summary said the GuardDuty scan was 78 to 87% of the total. That split was estimated, and the replication share was guessed at 3 s without being measured. These numbers are measured, and they show replication, not the scan, as the biggest part. The "0.3 s per MB" figure on the second page is also not supported.</p>
+  </section>
+
+  <p class="note">Each step boundary was polled about every 0.2 s from the client, so values are accurate to about 1 s. The scan step includes the delay between the object arriving and GuardDuty tagging it, not only the scanner. One run per size, so differences of a few seconds between files are within normal variation. Skipping replication by uploading straight to the scan bucket would remove the largest step, at the cost of changing the design.</p>
+</main>

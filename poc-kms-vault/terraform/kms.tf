@@ -52,14 +52,3 @@ resource "aws_kms_alias" "sign" {
   name          = "alias/vault-sign"
   target_key_id = aws_kms_key.sign.key_id
 }
-
-resource "aws_dynamodb_table" "vault" {
-  name         = "${local.project}-records"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "id"
-
-  attribute {
-    name = "id"
-    type = "S"
-  }
-}

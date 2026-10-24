@@ -1,0 +1,128 @@
+<title>Pipeline Stage Timings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: one reading column. Stacked bar per file first, then per-stage numbers, table, findings. */
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --fg: #1b2230; --muted: #5d6778; --line: #dde1e8;
+    --srr: #4a6a96; --scan: #c2410c; --evt: #2b8a7b; --warn: #9a6700;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa4b5; --line: #2b3340;
+      --srr: #7f9ec9; --scan: #f08a4b; --evt: #4fc0ae; --warn: #e3b341; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa4b5; --line: #2b3340;
+    --srr: #7f9ec9; --scan: #f08a4b; --evt: #4fc0ae; --warn: #e3b341; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+    padding-block: 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+  h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  p { margin: 0; max-width: 65ch; }
+  .sub, .note { color: var(--muted); }
+  .note { font-size: 13px; }
+  .path { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-x: auto; white-space: nowrap; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+  .chart { overflow-x: auto; }
+  svg { display: block; min-width: 560px; width: 100%; height: auto; }
+  svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+  svg .lbl { fill: var(--fg); font-size: 12px; }
+  svg .tot { fill: var(--fg); font-weight: 500; }
+  svg .grid { stroke: var(--line); stroke-width: 1; }
+  .b-srr { fill: var(--srr); } .b-scan { fill: var(--scan); } .b-evt { fill: var(--evt); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; }
+  .stages { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .stage .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; }
+  .stage .k i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; }
+  .stage .v { font-family: var(--font-mono); font-size: 26px; font-weight: 500; margin-top: 4px; }
+  .stage .d { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
+  td.num { font-family: var(--font-mono); }
+  td.hot { color: var(--warn); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .finds { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .finds h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+  .finds p { font-size: 14px; color: var(--muted); }
+  .fix { border-color: var(--warn); }
+</style>
+
+<main>
+  <header>
+    <h1>Replication takes longer than the scan</h1>
+    <p class="sub">Time spent in each step for one file of each size, from the file landing in S3(src) until it appears in S3(approved). One run, ap-southeast-7, 2026-10-24.</p>
+  </header>
+
+  <div class="path">S3(src) → SRR → S3(scan) → GuardDuty scan → EventBridge + Lambda move → S3(approved)</div>
+
+  <section>
+    <h2>Seconds per step, by file</h2>
+    <div class="card">
+      <div class="chart">
+        <svg viewBox="0 0 700 320" role="img" aria-label="Stacked bars of seconds in replication, GuardDuty scan, and Lambda move for each file size">
+          <line class="grid" x1="110.0" x2="110.0" y1="10" y2="286"/><text x="110.0" y="306" text-anchor="middle">0</text><line class="grid" x1="180.0" x2="180.0" y1="10" y2="286"/><text x="180.0" y="306" text-anchor="middle">10</text><line class="grid" x1="250.0" x2="250.0" y1="10" y2="286"/><text x="250.0" y="306" text-anchor="middle">20</text><line class="grid" x1="320.0" x2="320.0" y1="10" y2="286"/><text x="320.0" y="306" text-anchor="middle">30</text><line class="grid" x1="390.0" x2="390.0" y1="10" y2="286"/><text x="390.0" y="306" text-anchor="middle">40</text><line class="grid" x1="460.0" x2="460.0" y1="10" y2="286"/><text x="460.0" y="306" text-anchor="middle">50</text><line class="grid" x1="530.0" x2="530.0" y1="10" y2="286"/><text x="530.0" y="306" text-anchor="middle">60</text><line class="grid" x1="600.0" x2="600.0" y1="10" y2="286"/><text x="600.0" y="306" text-anchor="middle">70 s</text>
+          <text class="lbl" x="100" y="35" text-anchor="end">10 MB</text><rect class="b-srr" x="110.0" y="20" width="156.0" height="22"/><rect class="b-scan" x="266.0" y="20" width="12.0" height="22"/><rect class="b-evt" x="278.0" y="20" width="7.7" height="22"/><text class="tot" x="293.7" y="35">25 s</text><text class="lbl" x="100" y="69" text-anchor="end">30 MB</text><rect class="b-srr" x="110.0" y="54" width="153.6" height="22"/><rect class="b-scan" x="263.6" y="54" width="15.8" height="22"/><rect class="b-evt" x="279.3" y="54" width="16.0" height="22"/><text class="tot" x="303.3" y="69">26 s</text><text class="lbl" x="100" y="103" text-anchor="end">50 MB</text><rect class="b-srr" x="110.0" y="88" width="154.5" height="22"/><rect class="b-scan" x="264.5" y="88" width="20.0" height="22"/><rect class="b-evt" x="284.5" y="88" width="15.8" height="22"/><text class="tot" x="308.3" y="103">27 s</text><text class="lbl" x="100" y="137" text-anchor="end">100 MB</text><rect class="b-srr" x="110.0" y="122" width="151.8" height="22"/><rect class="b-scan" x="261.8" y="122" width="303.2" height="22"/><rect class="b-evt" x="565.0" y="122" width="24.7" height="22"/><text class="tot" x="597.7" y="137">69 s</text><text class="lbl" x="100" y="171" text-anchor="end">150 MB</text><rect class="b-srr" x="110.0" y="156" width="254.9" height="22"/><rect class="b-scan" x="364.9" y="156" width="24.6" height="22"/><rect class="b-evt" x="389.6" y="156" width="16.3" height="22"/><text class="tot" x="413.9" y="171">42 s</text><text class="lbl" x="100" y="205" text-anchor="end">200 MB</text><rect class="b-srr" x="110.0" y="190" width="253.0" height="22"/><rect class="b-scan" x="363.0" y="190" width="38.0" height="22"/><rect class="b-evt" x="401.0" y="190" width="26.1" height="22"/><text class="tot" x="435.1" y="205">45 s</text><text class="lbl" x="100" y="239" text-anchor="end">300 MB</text><rect class="b-srr" x="110.0" y="224" width="181.0" height="22"/><rect class="b-scan" x="291.0" y="224" width="53.1" height="22"/><rect class="b-evt" x="344.2" y="224" width="44.1" height="22"/><text class="tot" x="396.2" y="239">40 s</text><text class="lbl" x="100" y="273" text-anchor="end">500 MB</text><rect class="b-srr" x="110.0" y="258" width="302.3" height="22"/><rect class="b-scan" x="412.3" y="258" width="87.4" height="22"/><rect class="b-evt" x="499.7" y="258" width="61.9" height="22"/><text class="tot" x="569.6" y="273">65 s</text>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--srr)"></i>Replication src → scan</span>
+        <span><i style="background:var(--scan)"></i>GuardDuty scan until tagged</span>
+        <span><i style="background:var(--evt)"></i>EventBridge + Lambda move</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Typical time and growth per step</h2>
+    <div class="stages">
+      <div class="card stage"><div class="k"><i style="background:var(--srr)"></i>Replication</div><div class="v">24 s</div><div class="d">median, +0.040 s per MB (R² 0.61)</div></div>
+      <div class="card stage"><div class="k"><i style="background:var(--scan)"></i>GuardDuty scan</div><div class="v">4.5 s</div><div class="d">median, +0.022 s per MB without the 100 MB outlier (R² 0.98)</div></div>
+      <div class="card stage"><div class="k"><i style="background:var(--evt)"></i>Lambda move</div><div class="v">2.9 s</div><div class="d">median, +0.015 s per MB (R² 0.93)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Per-file results</h2>
+    <div class="card tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Replication</th><th>GuardDuty scan</th><th>Lambda move</th><th>Total</th><th>Replication share</th></tr></thead>
+        <tbody><tr><td>10 MB</td><td class="num">22.3 s</td><td class="num">1.7 s</td><td class="num">1.1 s</td><td class="num">25.1 s</td><td class="num">89%</td></tr><tr><td>30 MB</td><td class="num">21.9 s</td><td class="num">2.2 s</td><td class="num">2.3 s</td><td class="num">26.5 s</td><td class="num">83%</td></tr><tr><td>50 MB</td><td class="num">22.1 s</td><td class="num">2.9 s</td><td class="num">2.3 s</td><td class="num">27.2 s</td><td class="num">81%</td></tr><tr><td>100 MB</td><td class="num">21.7 s</td><td class="num hot">43.3 s</td><td class="num">3.5 s</td><td class="num">68.5 s</td><td class="num">32%</td></tr><tr><td>150 MB</td><td class="num">36.4 s</td><td class="num">3.5 s</td><td class="num">2.3 s</td><td class="num">42.3 s</td><td class="num">86%</td></tr><tr><td>200 MB</td><td class="num">36.1 s</td><td class="num">5.4 s</td><td class="num">3.7 s</td><td class="num">45.3 s</td><td class="num">80%</td></tr><tr><td>300 MB</td><td class="num">25.9 s</td><td class="num">7.6 s</td><td class="num">6.3 s</td><td class="num">39.8 s</td><td class="num">65%</td></tr><tr><td>500 MB</td><td class="num">43.2 s</td><td class="num">12.5 s</td><td class="num">8.8 s</td><td class="num">64.5 s</td><td class="num">67%</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What this means</h2>
+    <div class="finds">
+      <div class="card">
+        <h3>Replication is the largest step</h3>
+        <p>It takes about 22 s even for a 10 MB file and 36 to 43 s for 150, 200 and 500 MB. It is two thirds or more of the total for every file except the 100 MB one.</p>
+      </div>
+      <div class="card">
+        <h3>The scan itself is short</h3>
+        <p>Between 2 s and 13 s for most files, growing slowly with size. One 100 MB file took 43 s and the cause is unknown.</p>
+      </div>
+      <div class="card">
+        <h3>Moving big files takes longer</h3>
+        <p>The Lambda step grows from 1 s at 10 MB to 9 s at 500 MB, so copying to approved is not instant for large files.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card fix">
+    <h2>Corrects the earlier pages</h2>
+    <p>The first summary said the GuardDuty scan was 78 to 87% of the total. That split was estimated, and the replication share was guessed at 3 s without being measured. These numbers are measured, and they show replication, not the scan, as the biggest part. The "0.3 s per MB" figure on the second page is also not supported.</p>
+  </section>
+
+  <p class="note">Each step boundary was polled about every 0.2 s from the client, so values are accurate to about 1 s. The scan step includes the delay between the object arriving and GuardDuty tagging it, not only the scanner. One run per size, so differences of a few seconds between files are within normal variation. Skipping replication by uploading straight to the scan bucket would remove the largest step, at the cost of changing the design.</p>
+</main>

@@ -64,7 +64,7 @@ resource "aws_lambda_function" "scan_logger" {
   handler          = "lambda_handler.handler"
   filename         = data.archive_file.lambda.output_path
   source_code_hash = data.archive_file.lambda.output_base64sha256
-  timeout          = 10
+  timeout          = 300
 
   environment {
     variables = {
