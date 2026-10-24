@@ -18,7 +18,7 @@ variable "region" {
 
 locals {
   local_mode = var.endpoint != ""
-  project    = "poc-kms-vault"
+  project    = "kms-vault"
   tenants    = toset(["a", "b"])
 }
 

@@ -1,5 +1,6 @@
 import csv, statistics as st
-D='/Users/jonathan/Workspace/t10e/poc-s3-guard-duty/results/'
+import os
+D=os.path.dirname(os.path.abspath(__file__))+'/'
 rows=list(csv.DictReader(open(D+'stages.csv')))
 data=[]
 for r in rows:

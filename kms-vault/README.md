@@ -1,4 +1,4 @@
-# poc-kms-vault
+# kms-vault
 
 Envelope encryption and signing on AWS KMS, as a small Python module with no API in front. The question: do KMS encryption context, key disable and re-wrapping behave the way a per-tenant design needs?
 

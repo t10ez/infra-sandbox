@@ -6,8 +6,8 @@ Infrastructure and cloud POC series: AWS, security, cloud-native experiments.
 
 | Directory | Question | Tested on |
 |---|---|---|
-| [poc-s3-guard-duty](./poc-s3-guard-duty) | How long does a file take from upload to quarantine or approved, and what dominates? | AWS |
-| [poc-kms-vault](./poc-kms-vault) | Can one small service do per-tenant envelope encryption, rotation and signing on KMS? | floci |
+| [s3-guard-duty](./s3-guard-duty) | How long does a file take from upload to quarantine or approved, and what dominates? | AWS |
+| [kms-vault](./kms-vault) | Can a small module do per-tenant envelope encryption, rotation and signing on KMS? | floci |
 
 ## Conventions
 

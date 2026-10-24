@@ -1,4 +1,4 @@
-# poc-s3-guard-duty
+# s3-guard-duty
 
 Scan uploaded files with GuardDuty Malware Protection for S3, then route them to a quarantine or approved bucket. The question: how long does a file take from landing in S3 to its final bucket, and which step dominates?
 
