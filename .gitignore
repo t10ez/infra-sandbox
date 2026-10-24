@@ -25,3 +25,7 @@ terraform.rc
 .idea/
 .vscode/
 *.swp
+
+# kms-vault Lambda bundle
+poc-kms-vault/build/
+__pycache__/

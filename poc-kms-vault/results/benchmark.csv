@@ -1,0 +1,7 @@
+size,op,n,rtt_med_ms,rtt_p95_ms,kms_med_ms,aes_med_ms
+1KB,encrypt,30,8.3,10.3,1.9,0.00
+1KB,decrypt,30,9.2,13.3,1.7,0.00
+100KB,encrypt,30,12.8,22.8,2.0,0.02
+100KB,decrypt,30,12.1,17.4,1.8,0.03
+250KB,encrypt,30,18.2,24.6,2.2,0.06
+250KB,decrypt,30,16.8,21.2,2.0,0.05
