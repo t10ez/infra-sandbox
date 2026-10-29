@@ -1,0 +1,10 @@
+aws_region = "ap-southeast-1"
+
+# report type => schedule. Keys are also the proxy's allowlist.
+report_schedules = {
+  a = "rate(5 minutes)"
+  b = "rate(10 minutes)"
+}
+
+# Empty = deploy the echo Lambda and forward to its Function URL.
+target_url = ""

@@ -28,3 +28,7 @@ terraform.rc
 
 __pycache__/
 .venv/
+
+# Go Lambda build output
+*/build/
+bootstrap

@@ -8,6 +8,7 @@ Infrastructure and cloud POC series: AWS, security, cloud-native experiments.
 |---|---|---|
 | [s3-guard-duty](./s3-guard-duty) | How long does a file take from upload to quarantine or approved, and what dominates? | AWS |
 | [kms-vault](./kms-vault) | Can a small module do per-tenant envelope encryption, rotation and signing on KMS? | floci |
+| [eventbridge-lambda-proxy](./eventbridge-lambda-proxy) | Can a Go + Gin Lambda turn scheduled and on-demand EventBridge events into HTTP report calls, with retries and an idempotency key? | floci |
 
 ## Conventions
 
